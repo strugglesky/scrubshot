@@ -1,0 +1,34 @@
+{
+  "name": "scrubshot",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Paste a screenshot, redact the sensitive bits. Runs entirely in your browser.",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@sanduc/ocr-browser": "^1.5.7",
+    "@sanduc/ocr-models": "^1.5.7",
+    "fflate": "^0.8.2",
+    "onnxruntime-web": "^1.30.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "tesseract.js": "^5.1.1"
+  },
+  "devDependencies": {
+    "@types/react": "^18.3.12",
+    "@types/react-dom": "^18.3.1",
+    "@vitejs/plugin-react": "^4.3.4",
+    "typescript": "^5.6.3",
+    "vite": "^6.0.7",
+    "vitest": "^2.1.8"
+  },
+  "license": "MIT",
+  "homepage": "https://github.com/strugglesky",
+  "repository": { "type": "git", "url": "https://github.com/strugglesky/scrubshot"}
+}
