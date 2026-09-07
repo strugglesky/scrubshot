@@ -1,0 +1,6 @@
+# pnpm 11 起，依赖的安装脚本默认被拦截（供应链防护），需要在这里显式放行。
+# esbuild 是 Vite / Vitest 的依赖，需要执行安装脚本落地平台二进制。
+allowBuilds:
+  esbuild: true
+  protobufjs: true
+  tesseract.js: true
