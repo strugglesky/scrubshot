@@ -1,160 +1,98 @@
-# Scrubshot
+# 🛡️ Scrubshot · 截图脱敏工具
 
-**粘贴一张截图，它找出手机号、身份证、银行卡、Token、地址，一键涂掉。**
-**图片全程留在浏览器里——不上传、不联网、可断网使用。**
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![CI](https://github.com/strugglesky/scrubshot/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/strugglesky/scrubshot/actions/workflows/ci.yml)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.6+-3178C6.svg)](https://www.typescriptlang.org/)
+[![Vite](https://img.shields.io/badge/Vite-6-646CFF.svg)](https://vite.dev/)
+[![RapidOCR](https://img.shields.io/badge/OCR-RapidOCR%20·%20PP--OCRv5-2E7D32.svg)](#-技术架构)
+[![Local First](https://img.shields.io/badge/100%25-本地处理-success.svg)](#-为什么不直接打码)
+
+粘贴一张截图，自动找出手机号、身份证、银行卡、Token、地址，一键涂掉。
+**图片全程留在浏览器里 —— 不上传、不联网、可断网使用。**
+
+[在线试用](https://scrub.yourdomain.com) · [评测数据](./test-data) · [问题反馈](https://github.com/strugglesky/scrubshot/issues)
 
 ![demo](docs/demo.gif)
 
-> 实测 30 张真实截图：召回 **98.7%**（157 项里漏 2 项，均为刻意不覆盖的 10 位数字），
-> 误报 **0**。数据见 [评测](#评测)。
+> **30 张真实截图、157 个敏感项：召回 98.7%，误报 0。**
 
-## 30 秒开始
+---
 
-```bash
-pnpm install && pnpm dev
-```
+## ✨ 主要特性
 
-打开 http://localhost:5173 ，截图后 `Ctrl+V` 粘贴，检查右侧清单，`Enter` 导出。
+- 🔍 **自动识别**：手机号、身份证、银行卡、邮箱、地址、座机、JWT、API Key、私钥、带 token 的 URL、内网 IP、长单号
+- 🚦 **三色分级**：🔴 高风险自动打码 · 🟡 中风险标记核对 · ⚪ 低风险仅提示
+- 🧾 **可审查清单**：每条命中都能看到标签和原文片段，逐条开关；还能展开看**OCR 读到的全部文字**
+- 🔗 **跨行拼接**：聊天框把身份证折成两行时，合并成一个框，不会只遮一半
+- 🔄 **镜像识别**：镜像截图置信度低时自动翻转重试
+- 📦 **批量处理**：一次拖入多张，左侧队列切换，单张导出或整包 zip
+- ↩️ **每图独立撤销栈**：切图后 Ctrl+Z 不会撤到上一张
+- 🔒 **完全本地**：没有后端，没有上传接口，模型加载后可用 DevTools 验证 0 请求
 
-## 为什么不是「模糊一下」
+### 为什么不直接打码
 
 大多数工具默认给你高斯模糊。但模糊和像素化过的文字，在特定条件下**可以被还原**。
 
-Scrubshot 默认用**不透明色块**覆盖；你选择模糊时，它会警告你一次。
+所以 Scrubshot 默认用**不透明色块**覆盖；你选择模糊时会收到一次警告。
 
-## 它能找到什么
+---
 
-| 类别 | 默认行为 |
-|---|---|
-| 手机号 / 身份证 / 银行卡 / 地址 / 邮箱 | 🔴 自动涂掉 |
-| JWT / API Key / 私钥 / 带 token 的 URL | 🔴 自动涂掉 |
-| 座机 / 内网 IP / 用户名 / 长单号 / 二维码 | 🟡 建议，需你确认 |
-| 公网 IP / 车牌 / 短数字 | ⚪ 仅提示，不处理 |
-
-**和同类工具最大的区别**：右侧有一份"识别到的全部文字"清单，命中项高亮。
-你能看到工具读到了什么、忽略了什么——从而发现它漏掉的东西。
-
-## 它不会做什么
-
-- 不会上传你的图片（可用 DevTools Network 验证：模型加载后 0 请求）
-- 不会保证 100% 识别——它是助手，最后一眼要你自己看
-- 不处理 PDF / 视频 / GIF
-
-## 现在能做什么
-
-- 拖拽 / 选择文件 / `Ctrl+V` 粘贴剪贴板截图
-- **自动识别**：手机号、邮箱、身份证、银行卡、JWT、API Key、私钥、带 token 的 URL、内网 IP、用户名、车牌、长单号、地址
-- **三色分级**：🔴 高风险默认打码 · 🟡 中风险默认打码但标记核对 · ⚪ 低风险仅提示
-- **清单可审查**：每条都能看到命中的标签和原文片段，逐条开关
-- **识别全貌**：可展开查看 OCR 读到的每一行文字，命中项高亮 —— 用来发现"它漏了什么"
-- 手动补框：拖拽画框、拖动移动、四角缩放
-- **批量**：一次拖入多张、左侧队列切换、单张导出或整包 zip
-- 每张图独立的撤销栈 —— 切图后 Ctrl+Z 不会撤到上一张
-- 批量识别是**串行**的（单 OCR worker），10 张大约等于 10 次单张耗时
-- 三种打码样式：涂黑（默认）/ 模糊 / 像素化
-- 预览最终效果
-- 撤销 / 重做（`Ctrl+Z`、`Ctrl+Shift+Z`）
-- 导出 PNG / JPEG / WebP（重新编码，EXIF 与缩略图一并清除）
-- **跨行拼接**：聊天框把身份证折成两行时，会合并成一个框，不会只遮一半
-
-## 本地运行
+## 🚀 快速开始
 
 ```bash
+git clone https://github.com/strugglesky/scrubshot.git
+cd scrubshot
 pnpm install
-pnpm dev        # http://localhost:5173
+pnpm dev
 ```
 
-```bash
-pnpm test       # 规则引擎单测
-pnpm typecheck  # tsc --noEmit
-pnpm build
-```
+打开 **http://localhost:5173**，截图后 `Ctrl+V` 粘贴，检查右侧清单，`Enter` 导出。
 
-### 环境要求
+> 首次识别会下载约 58MB 资源（OCR 引擎 + 模型 + ONNX 运行时），之后完全离线可用。
 
-- **pnpm 11+**：依赖的安装脚本默认被拦截（供应链防护），放行配置在 `pnpm-workspace.yaml` 的 `allowBuilds`。
-  注意 pnpm 11 已**不再读取** `package.json` 里的 `pnpm` 字段，写在那里会被静默忽略。
-- Node 20+。
+---
 
-## 部署
+## 📊 实测表现
 
-纯静态站点，产物在 `dist/`，没有任何服务端依赖。
+| 引擎 | 召回 | 精确 | 说明 |
+|------|------|------|------|
+| Tesseract 5（最好配置） | 120/150 = 80% | 97.6% | 版面分析会整块跳过表单 |
+| **RapidOCR · PP-OCRv5 mobile** | **155/157 = 98.7%** | 96.9% | 默认引擎 |
 
-| 平台 | 构建命令 | 输出目录 |
-|---|---|---|
-| Vercel / Netlify | `pnpm build` | `dist` |
-| Cloudflare Pages | `pnpm build` | `dist` |
-| 自托管 | `pnpm build` 后把 `dist/` 交给任意静态服务器 | `dist` |
+> 精确率那一列的 5 处「多报」，逐条核对后**全是标注遗漏**（2 个邮箱 + 3 个地址），
+> 补进标注后真实误报为 0。漏掉的 2 条都是 10 位纯数字，和 Unix 时间戳形态相同，刻意不识别。
 
-注意三点：
+📖 数据集与复现步骤见 [test-data/](./test-data)
 
-- `public/models/` 会被一起打进 `dist/`（约 20MB）。它不进 git，但**必须进产物**
-- 不需要 COOP/COEP 响应头 —— ONNX Runtime 已设为单线程，不依赖 SharedArrayBuffer
-- ONNX Runtime 的 wasm（约 28MB）也在产物里，**首次识别之后完全离线可用**，不依赖任何第三方 CDN
+---
 
-### 首次加载的体积
+## 🏗️ 技术架构
 
-| 资源 | 大小 | 何时加载 |
-|---|---|---|
-| 应用壳 | ~630KB（gzip 189KB） | 打开页面 |
-| OCR 引擎（含 OpenCV） | ~10MB | 第一次识别时，懒加载 |
-| PP-OCR 模型 | ~20MB | 第一次识别时 |
-| ONNX Runtime wasm | ~28MB | 第一次识别时 |
+| 层 | 技术 |
+|------|------|
+| **OCR 引擎** | RapidOCR（PP-OCRv5 mobile，ONNX Runtime）+ Tesseract 兜底 |
+| **检测** | 14 条正则规则 + 校验位算法（Luhn / 身份证）+ 上下文推断 |
+| **前端** | React 18 + TypeScript 5.6 + Vite 6 |
+| **渲染** | Canvas 2D（打码与导出） |
+| **批处理** | Web Worker 队列 + fflate（zip） |
+| **部署** | 纯静态，无后端、无数据库 |
 
-合计约 58MB（未压缩，实际传输约 21MB），之后全部走浏览器缓存。
-应用壳很轻，重的东西只在真正需要识别时才下载——这是刻意的。
+---
 
-## OCR 是怎么跑的
+## 📖 工作流程
 
-默认引擎是 RapidOCR（PP-OCR）：先由检测网络把每一行文字框出来，再逐行识别。
+1. 深色主题截图先反色，否则浅字深底读不出来
+2. 检测网络框出每一行文字，识别网络输出文本与置信度
+3. 每行跑规则引擎；有词级坐标就框到词，没有就按字符宽度比例切
+4. 校验位不通过**不丢弃**，降级为「疑似」——校验位判断可信度，不决定要不要让你看见
+5. 长号码被折行时，上下两行拼接后重新匹配
+6. 置信度偏低时自动水平翻转，判定镜像后把坐标换算回原图
 
-1. 模型从 `public/models/` 加载（构建时自动复制，约 20MB，浏览器会缓存）
-2. 深色主题截图先反色 —— 浅字深底直接读不出来
-3. 检测网络给出每行的四点框，识别网络输出文本 + 置信度
-4. 每行跑规则引擎；有词级坐标时框到词，没有时按字符宽度比例切 ——
-   `收件人：孙艳佳 137-5506-1108` 不会把标签一起框住
-5. 没命中正则但有 `密码:` / `Token:` 这类标签的，降级为"疑似字段"中风险
-6. 身份证/银行卡先过校验位；**校验不通过不会丢弃**，而是降级成"疑似"——校验位用来判断可信度，不用来决定要不要让你看见
-7. **跨行拼接**：长号码被聊天框折成两行时，上下两行拼起来重新匹配，避免只遮一半
-8. **镜像图**：置信度偏低时自动水平翻转重试；也可以手动点「镜像识别」
+---
 
-Tesseract 保留为兜底引擎：RapidOCR 起不来时自动切换，功能不中断。
+## 🧪 评测
 
-**首次使用需要下载约 48MB 资源**（28MB 运行时 + 20MB 模型），之后完全离线可用。
-都是下载，不是上传——图片本身始终不出浏览器。
-
-## 识别引擎
-
-内置两个引擎，可在评测页切换：
-
-| | Tesseract 5 | RapidOCR（PP-OCR） |
-|---|---|---|
-| 原理 | 版面分析 + 识别 | 逐行检测 + 识别 |
-| 中文表单/便签 | 会整块跳过 | 不依赖版面分析 |
-| 模型体积 | ~15MB | ~20MB |
-| 状态 | 兜底 | **默认** |
-
-实测（30 张真实截图，157 个敏感项）：
-
-| 引擎 | 召回 | 精确 |
-|---|---|---|
-| Tesseract 5（最好配置，150 项口径） | 120/150 = 80% | 97.6% |
-| **RapidOCR mobile** | **155/157 = 98.7%** | 96.9% |
-
-> 5 处"多报"逐条核对后，**全部是真阳性**（2 个邮箱 + 3 个地址），是标注时漏掉的。
-> 补进 `labels.json` 后精确率为 100%。所以这一列不能直接当"误报"读——
-> 工具可能比你标得更严。
-
-漏掉的 2 条都是 10 位纯数字（病历号），和 Unix 时间戳形态相同，刻意不识别。
-
-RapidOCR 通过 `@sanduc/ocr-browser` 接入。它起不来时会自动退回 Tesseract，不会让工具本身不可用。
-
-> 注意：`@sanduc/ocr-models` 必须写成**直接依赖**。它是 `ocr-browser` 的传递依赖，
-> 而 pnpm 不会把传递依赖链接到根 `node_modules/`，但它的 Vite 插件是按根路径找模型的。
-
-## 评测
-
-顶部点「评测」，导入一批真实截图和一份 `labels.json`。清单只写"这张图里有哪些敏感字符串"，**不用画框**：
+应用内置评测模式，用真实截图算召回率与多报数。标注只写**敏感字符串**，不用画框：
 
 ```json
 {
@@ -164,86 +102,127 @@ RapidOCR 通过 `@sanduc/ocr-browser` 接入。它起不来时会自动退回 Te
 }
 ```
 
-三条规则：
+- 值写**内容本身**，不是类型（写 `18967676767`，不要写 `手机号`）
+- 没有敏感信息的图也要写 `[]`，别省略
+- 空格、短横、全角半角不用管，匹配前会归一化
 
-1. **值写内容本身，不是类型**——写 `18967676767`，不要写 `手机号`
-2. **没有敏感信息的图也要写 `[]`**，别省略这个键；省略会被当成漏标
-3. 空格、短横、全角半角不用管，匹配前会归一化
+**复现仓库里的数字：**
 
-推荐流程：拖完图 → 点「生成清单模板」拿到一份所有文件名的空清单 → 填值 → 导入 → 开始评测。
+1. 打开评测页 → 「添加截图」→ 选 `test-data/images/` 全部 30 张
+2. 「导入 labels.json」→ 选 `test-data/labels.json`
+3. 引擎选 RapidOCR → 「开始评测」
 
-跑完给出召回率、多报数、逐图明细，可导出 CSV。文件名对不上时会用去掉扩展名的名字再试一次（不区分大小写）；清单里没出现的图会给出警告并按"没有敏感信息"计。
+数据集覆盖 10 类场景 × 3 张：聊天记录、快递单、登记表、身份证、表格、便签、订单、医疗单、小票。
+全部为虚构数据，不含真实个人信息。
 
-> 多报数不完全等于误报——工具可能报中了你没标注的敏感项。**先看漏检清单**，那才是真问题。
+---
 
-### 仓库自带的数据集
+## 📦 部署
 
-`test-data/` 里有一份可以直接跑的数据集，用来复现上面的数字：
+`dist/` 是纯静态产物，扔给任何静态服务器即可。
 
-| 内容 | 说明 |
-|---|---|
-| `test-data/images/` | 30 张合成截图，10 类场景 × 3 张：聊天记录、快递单、登记表、身份证、表格、便签、订单、医疗单、小票 |
-| `test-data/labels.json` | 157 个敏感项的标注 |
+| 方式 | 复杂度 | 说明 |
+|------|--------|------|
+| 本地预览 | ⭐ | `pnpm build && pnpm preview` |
+| Vercel / Netlify | ⭐ | 连仓库，构建 `pnpm build`，输出 `dist` |
+| 云服务器 + nginx | ⭐⭐ | 推荐，无单文件大小限制 |
 
-全部是**虚构数据**（图上标了 `SAMPLE · 虚构测试数据`），不含真实个人信息，可以放心提交和分发。
+> ⚠️ Cloudflare Pages 单文件上限 25MB，而 ONNX Runtime 的 wasm 有 28MB，会被拒。
 
-复现步骤：
+### 首次加载的资源
 
-1. 打开评测页，点「添加截图」，选 `test-data/images/` 下全部 30 张
-2. 点「导入 labels.json」，选 `test-data/labels.json`
-3. 引擎选 RapidOCR，点「开始评测」
+| 资源 | 大小 | 时机 |
+|------|------|------|
+| 应用壳 | ~630KB | 打开页面 |
+| OCR 引擎（含 OpenCV） | ~10MB | 第一次识别，懒加载 |
+| PP-OCR 模型 | ~20MB | 第一次识别 |
+| ONNX 运行时 wasm | ~28MB | 第一次识别 |
 
-预期结果 **155/157**：漏掉的两条是 10 位纯数字（`5735011988`、`1126037450`），属于刻意不覆盖的类型。
+合计约 58MB（gzip 后约 21MB），之后全部走浏览器缓存。
 
-欢迎往这里加新场景——尤其是能让当前版本漏检或误报的样本，那比任何 issue 描述都有用。
+---
 
-## 为什么默认涂黑
-
-大多数工具默认给高斯模糊。但模糊和像素化过的文字，在特定条件下**可以被算法还原**。
-所以默认是不透明色块；选模糊时会给出警告。
-
-## 目录
+## 📋 项目结构
 
 ```
-src/
-├─ components/   Stage（画布/交互）、Sidebar（清单/样式/导出）、Dropzone
-├─ core/         几何、打码渲染、导出编码、图片加载
-├─ detectors/    正则规则 + 校验位 + 上下文推断（纯函数，零 DOM，可单测）
-├─ ocr/          OcrEngine 接口 + tesseract 实现
-└─ hooks/        useHistory（撤销/重做）
+scrubshot/
+├── src/
+│   ├── components/        # 画布编辑器、侧栏、队列、评测界面
+│   ├── core/              # 几何计算、打码渲染、导出、图片加载
+│   ├── detectors/         # 规则引擎、校验位、分级、跨行拼接
+│   ├── ocr/               # 引擎抽象 + RapidOCR / Tesseract 实现
+│   └── hooks/             # 撤销/重做
+├── test-data/             # 评测数据集（30 张 + 标注）
+├── docs/demo.gif          # 演示动图
+├── public/models/         # 构建时复制，不入库
+├── .github/workflows/     # CI
+└── vite.config.ts         # 模型复制与构建配置
 ```
 
-`detectors/` 刻意保持与 DOM 无关——将来 CLI 和 Worker 可以直接复用。
-`ocr/` 抽了 `OcrEngine` 接口：W3 换成 RapidOCR（ONNX）时，上层一行都不用改。
+---
 
-## 已知限制
+## 🛠️ 本地开发
 
-- **10–11 位纯数字不识别**：病历号、Unix 时间戳形态相同，无法区分。带标签的（`病历号：`）可以后续加上下文规则
-- **只处理水平镜像**；180° 倒置、90° 侧转暂不支持
-- **跨行号码拼接**只覆盖 11 / 16–19 位（手机、银行卡、身份证）；更长的流水号折行仍可能只遮住一半
-- 首次使用需下载 ~20MB 模型（本地）+ ~25MB ONNX Runtime wasm（CDN）
-- 识别粒度是"一行一个框"，同一行里的多个敏感词会合成一个框
+```bash
+pnpm dev        # 开发服务器
+pnpm test       # 单元测试
+pnpm typecheck  # 类型检查
+pnpm build      # 生产构建
+```
 
-## 路线图
+**环境要求**
 
-- [x] W1 画框 / 打码 / 导出 / 规则引擎
-- [x] W2 OCR 接入、三色分级、可审查清单
-- [x] W3 词级包围盒、批量队列、zip 导出
-- [x] W4 评测模式（召回/多报、CSV 导出）
-- [x] 换用 RapidOCR：召回 80% → 98.7%
+- **Node 20+**
+- **pnpm 11+**：依赖的安装脚本默认被拦截，放行配置在 `pnpm-workspace.yaml` 的 `allowBuilds`
 
-## 第三方资源
+> 遇到装不上、起不来，先看 [CONTRIBUTING.md](./CONTRIBUTING.md) —— 那里记着三个会卡住人的坑。
+
+---
+
+## ⚠️ 已知限制
+
+- **10–11 位纯数字不识别**：病历号与 Unix 时间戳形态相同，无法区分
+- **只处理水平镜像**；180° 倒置、90° 侧转不支持
+- **跨行拼接**只覆盖 11 / 16–19 位（手机、银行卡、身份证）
+- 识别粒度是「一行一个框」，同一行里的多个敏感词会合成一个框
+- 首次使用需下载约 48MB 资源
+
+---
+
+## 🤝 贡献指南
+
+1. Fork 项目
+2. 创建分支 (`git checkout -b feature/amazing-feature`)
+3. 提交更改 (`git commit -m 'feat: add amazing feature'`)
+4. 推送分支 (`git push origin feature/amazing-feature`)
+5. 创建 Pull Request
+
+**最有价值的贡献是「失败的样本」** —— 一张让当前版本漏检或误报的截图，比任何 issue 描述都有用。
+
+---
+
+## 📄 许可证
+
+本项目采用 **MIT** 许可证，详见 [LICENSE](LICENSE)。
+
+### 第三方资源
 
 | 组件 | 用途 | 许可 |
-|---|---|---|
-| [PaddleOCR](https://github.com/PaddlePaddle/PaddleOCR) PP-OCRv5 mobile 模型 | 文字检测与识别 | Apache-2.0 |
+|------|------|------|
+| [PaddleOCR](https://github.com/PaddlePaddle/PaddleOCR) PP-OCRv5 模型 | 文字检测与识别 | Apache-2.0 |
 | [onnxruntime-web](https://github.com/microsoft/onnxruntime) | 浏览器内推理 | MIT |
-| [@sanduc/ocr-browser](https://github.com/sandu-c/ocr) | PaddleOCR 的浏览器封装 | MIT |
-| [tesseract.js](https://github.com/naptha/tesseract.js) + chi_sim 训练数据 | 兜底识别引擎 | Apache-2.0 |
+| [@sanduc/ocr-browser](https://github.com/sandu-c/ocr) | PaddleOCR 浏览器封装 | MIT |
+| [tesseract.js](https://github.com/naptha/tesseract.js) | 兜底识别引擎 | Apache-2.0 |
 | [fflate](https://github.com/101arrowz/fflate) | zip 打包 | MIT |
 
-模型文件不进仓库：构建时从 `node_modules` 复制到 `public/models/`，随产物一起分发。
+---
 
-## License
+## 🆘 获取帮助
 
-MIT
+- 📖 **贡献与本地开发**：[CONTRIBUTING.md](./CONTRIBUTING.md)
+- 🧪 **评测数据集**：[test-data/](./test-data)
+- 🐛 **问题报告**：[GitHub Issues](https://github.com/strugglesky/scrubshot/issues)
+
+---
+
+**Scrubshot** —— 发截图之前，先过一遍。 🛡️
