@@ -5,12 +5,12 @@
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.6+-3178C6.svg)](https://www.typescriptlang.org/)
 [![Vite](https://img.shields.io/badge/Vite-6-646CFF.svg)](https://vite.dev/)
 [![RapidOCR](https://img.shields.io/badge/OCR-RapidOCR%20·%20PP--OCRv5-2E7D32.svg)](#-技术架构)
-[![Local First](https://img.shields.io/badge/100%25-本地处理-success.svg)](#-为什么不直接打码)
+[![Local First](https://img.shields.io/badge/100%25-本地处理-success.svg)](#为什么不直接打码)
 
 粘贴一张截图，自动找出手机号、身份证、银行卡、Token、地址，一键涂掉。
 **图片全程留在浏览器里 —— 不上传、不联网、可断网使用。**
 
-[在线试用](https://scrub.yourdomain.com) · [评测数据](./test-data) · [问题反馈](https://github.com/strugglesky/scrubshot/issues)
+[🛡️ 在线试用](http://121.40.98.30:8080) · [🧪 评测数据](./test-data) · [🐛 问题反馈](https://github.com/strugglesky/scrubshot/issues)
 
 ![demo](docs/demo.gif)
 
@@ -39,6 +39,17 @@
 
 ## 🚀 快速开始
 
+### 直接试用
+
+**[http://121.40.98.30:8080](http://121.40.98.30:8080)**
+
+截图后直接 `Ctrl+V` 粘贴，检查右侧清单，`Enter` 导出。
+
+> 演示实例是裸 IP + HTTP，无需注册。首次识别需加载约 58MB 资源（OCR 引擎 + 模型 + ONNX 运行时），
+> 之后完全离线可用——可以断网再识别一张验证。
+
+### 本地运行
+
 ```bash
 git clone https://github.com/strugglesky/scrubshot.git
 cd scrubshot
@@ -46,9 +57,7 @@ pnpm install
 pnpm dev
 ```
 
-打开 **http://localhost:5173**，截图后 `Ctrl+V` 粘贴，检查右侧清单，`Enter` 导出。
-
-> 首次识别会下载约 58MB 资源（OCR 引擎 + 模型 + ONNX 运行时），之后完全离线可用。
+打开 **http://localhost:5173**。
 
 ---
 
@@ -128,6 +137,9 @@ pnpm dev
 | 云服务器 + nginx | ⭐⭐ | 推荐，无单文件大小限制 |
 
 > ⚠️ Cloudflare Pages 单文件上限 25MB，而 ONNX Runtime 的 wasm 有 28MB，会被拒。
+
+当前演示实例：Ubuntu + nginx，监听 8080，`gzip_static` 预压缩，站点根目录 `/opt/scrubshot/dist`。
+裸 IP 走 8080 是为了绕开国内 80 端口的备案拦截。
 
 ### 首次加载的资源
 
