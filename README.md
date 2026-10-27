@@ -1,5 +1,7 @@
 # 🛡️ Scrubshot · 截图脱敏工具
 
+**简体中文** | [English](./README.en.md)
+
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![CI](https://github.com/strugglesky/scrubshot/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/strugglesky/scrubshot/actions/workflows/ci.yml)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.6+-3178C6.svg)](https://www.typescriptlang.org/)
@@ -14,7 +16,8 @@
 
 ![demo](docs/demo.gif)
 
-> **30 张真实截图、157 个敏感项：召回 98.7%，误报 0。**
+> **30 张合成测试截图、157 个标注敏感项：文本检测召回率 98.7%。**
+> 该结果仅代表此测试集；文本命中不等于遮挡框完整覆盖，导出前仍需人工核对。
 
 ---
 
