@@ -108,7 +108,7 @@ pnpm dev
 
 ```json
 {
-  "shop.png": ["18967676767", "342622200206082951"],
+  "shop.png": ["18967676767", "142522******08495x"],
   "admin.png": ["admin@example.com", "sk-abc123def456ghi789"],
   "code.png": []
 }
