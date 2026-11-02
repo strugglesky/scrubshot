@@ -2,6 +2,9 @@ import { describe, expect, it } from 'vitest'
 import { scanText } from './rules'
 import { cnIdCard, isPrivateIp, luhn } from './validators'
 
+// 测试数据全部为占位值：手机号用文档通用示例号，证件号用「全 0 + 校验位」，
+// 卡号用 Visa 官方测试卡号。都不对应任何真实个人信息。
+
 const ids = (text: string) => scanText(text).map((m) => m.ruleId)
 
 describe('validators', () => {
@@ -11,8 +14,9 @@ describe('validators', () => {
   })
 
   it('validates CN ID checksum', () => {
-    expect(cnIdCard('11010519491231002X')).toBe(true)
-    expect(cnIdCard('110105194912310021')).toBe(false)
+    // 占位证件号：17 个 0 + 校验位，格式合法但不对应任何真实身份
+    expect(cnIdCard('000000000000000001')).toBe(true)
+    expect(cnIdCard('000000000000000002')).toBe(false)
   })
 
   it('classifies private IPs', () => {
@@ -24,15 +28,15 @@ describe('validators', () => {
 
 describe('scanText', () => {
   it('detects a CN mobile number', () => {
-    expect(ids('联系我：13812345678')).toContain('cn-mobile')
+    expect(ids('联系我：13800138000')).toContain('cn-mobile')
   })
 
   it('detects a mobile number split by spaces', () => {
-    expect(ids('电话 138 1234 5678')).toContain('cn-mobile')
+    expect(ids('电话 138 0013 8000')).toContain('cn-mobile')
   })
 
   it('detects a mobile number split between every digit', () => {
-    expect(ids('1 8 9 6 7 6 7 6 7 6 7')).toContain('cn-mobile')
+    expect(ids('1 3 8 0 0 1 3 8 0 0 0')).toContain('cn-mobile')
   })
 
   it('detects an email', () => {
@@ -40,23 +44,24 @@ describe('scanText', () => {
   })
 
   it('detects a valid ID card', () => {
-    expect(ids('身份证 11010519491231002X')).toContain('cn-id')
+    expect(ids('身份证 000000000000000001')).toContain('cn-id')
   })
 
   it('detects an ID card split by spaces', () => {
-    expect(ids('身份证号：110105 19491231 002X')).toContain('cn-id')
+    expect(ids('身份证号：000000 00000000 0001')).toContain('cn-id')
   })
 
   it('detects an ID card split into irregular groups', () => {
-    expect(ids('1101 0519 4912 3100 2X')).toContain('cn-id')
+    expect(ids('0000 0000 0000 0000 01')).toContain('cn-id')
   })
 
   it('detects full-width digits', () => {
-    expect(ids('１１０１０５１９４９１２３１００２Ｘ')).toContain('cn-id')
+    const fullWidth = '０'.repeat(17) + '１'
+    expect(ids(`身份证 ${fullWidth}`)).toContain('cn-id')
   })
 
   it('still reports an ID card whose checksum fails', () => {
-    const matches = scanText('编号 110105194912310021')
+    const matches = scanText('编号 000000000000000002')
     const match = matches.find((m) => m.ruleId === 'cn-id')
     expect(match).toBeDefined()
     expect(match?.label).toContain('疑似')
@@ -67,7 +72,7 @@ describe('scanText', () => {
   })
 
   it('still reports a card number whose Luhn fails, with a 疑似 label', () => {
-    const match = scanText('卡号 6013 3577 4371 9980').find((m) => m.ruleId === 'bank-card')
+    const match = scanText('卡号 6013 0000 0000 0000').find((m) => m.ruleId === 'bank-card')
     expect(match).toBeDefined()
     expect(match?.label).toContain('疑似')
   })

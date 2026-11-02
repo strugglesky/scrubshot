@@ -20,17 +20,17 @@ function line(text: string, x: number, y: number): TextLine {
 
 describe('mergeFindings', () => {
   it('drops the same value found at the same place by both passes', () => {
-    const merged = mergeFindings([finding('189 6767 6767', 10, 10)], [finding('18967676767', 11, 10)])
+    const merged = mergeFindings([finding('138 0013 8000', 10, 10)], [finding('13800138000', 11, 10)])
     expect(merged).toHaveLength(1)
   })
 
   it('keeps the same value found at two different places', () => {
-    const merged = mergeFindings([finding('18967676767', 10, 10)], [finding('18967676767', 400, 500)])
+    const merged = mergeFindings([finding('13800138000', 10, 10)], [finding('13800138000', 400, 500)])
     expect(merged).toHaveLength(2)
   })
 
   it('adds values only the second pass found', () => {
-    const merged = mergeFindings([finding('18967676767', 10, 10)], [finding('342622200206082951', 10, 80)])
+    const merged = mergeFindings([finding('13800138000', 10, 10)], [finding('000000000000000000', 10, 80)])
     expect(merged).toHaveLength(2)
   })
 })

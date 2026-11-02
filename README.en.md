@@ -127,13 +127,13 @@ The evaluation page compares detected text with a JSON label file. Label sensiti
 
 ```json
 {
-  "shop.png": ["18967676767", "342622200206082951"],
+  "shop.png": ["13800138000", "000000000000000000"],
   "admin.png": ["admin@example.com", "sk-abc123def456ghi789"],
   "code.png": []
 }
 ```
 
-- Use the actual value, such as `18967676767`, rather than `phone number`.
+- Use the actual value, such as `13800138000`, rather than `phone number`.
 - Include an empty array for screenshots with no expected findings.
 - Include every sensitive value you want evaluated. Missing labels can make correct detections appear as extras.
 - Inspect missed values and additional findings individually; aggregate percentages do not explain every error.

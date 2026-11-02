@@ -63,7 +63,7 @@ function isLabeled(labels: Record<string, string[]>, name: string): boolean {
 }
 
 const SAMPLE_LABELS = `{
-  "shop.png": ["18967676767", "342622200206082951"],
+  "shop.png": ["13800138000", "000000000000000000"],
   "code.png": []
 }`
 

@@ -5,7 +5,7 @@ import { findingToBox, findSensitive } from './suggest'
 describe('findSensitive', () => {
   it('narrows the box down to the matching word', () => {
     const line: TextLine = {
-      text: '手机号：18967676767',
+      text: '手机号：13800138000',
       x: 0,
       y: 10,
       w: 300,
@@ -13,7 +13,7 @@ describe('findSensitive', () => {
       confidence: 92,
       words: [
         { text: '手机号：', x: 0, y: 10, w: 80, h: 22, confidence: 90 },
-        { text: '18967676767', x: 88, y: 10, w: 130, h: 22, confidence: 96 },
+        { text: '13800138000', x: 88, y: 10, w: 130, h: 22, confidence: 96 },
       ],
     }
 
@@ -24,7 +24,7 @@ describe('findSensitive', () => {
 
   it('keeps a low-confidence line and still auto-redacts high risk', () => {
     const line: TextLine = {
-      text: '18967676767',
+      text: '13800138000',
       x: 0,
       y: 0,
       w: 120,
@@ -55,7 +55,7 @@ describe('findSensitive', () => {
 
   it('falls back to a proportional box when there are no word boxes', () => {
     const line: TextLine = {
-      text: 'ID 11010519491231002X',
+      text: 'ID 000000000000000000',
       x: 5,
       y: 6,
       w: 200,
@@ -74,7 +74,7 @@ describe('findSensitive', () => {
 
   it('excludes the label when label and value share a line', () => {
     const line: TextLine = {
-      text: '收件人：孙艳佳 137-5506-1108',
+      text: '收件人：某某某 138-0013-8000',
       x: 0,
       y: 0,
       w: 400,
@@ -84,14 +84,14 @@ describe('findSensitive', () => {
     }
 
     const [finding] = findSensitive([line])
-    // 「收件人：孙艳佳」不该被整段框进去
+    // 「收件人：某某某」不该被整段框进去
     expect(finding.rect.x).toBeGreaterThan(100)
     expect(finding.rect.x + finding.rect.w).toBeLessThanOrEqual(401)
   })
 
   it('emits one tight box per match instead of one wide box per line', () => {
     const line: TextLine = {
-      text: '手机号 13812345678 邮箱 a@b.com',
+      text: '手机号 13800138000 邮箱 a@b.com',
       x: 0,
       y: 0,
       w: 400,
@@ -99,7 +99,7 @@ describe('findSensitive', () => {
       confidence: 90,
       words: [
         { text: '手机号', x: 0, y: 0, w: 40, h: 20, confidence: 90 },
-        { text: '13812345678', x: 50, y: 0, w: 100, h: 20, confidence: 90 },
+        { text: '13800138000', x: 50, y: 0, w: 100, h: 20, confidence: 90 },
         { text: '邮箱', x: 160, y: 0, w: 30, h: 20, confidence: 90 },
         { text: 'a@b.com', x: 200, y: 0, w: 60, h: 20, confidence: 90 },
       ],
@@ -114,7 +114,7 @@ describe('findSensitive', () => {
 
   it('keeps detecting when word boxes are missing', () => {
     const line: TextLine = {
-      text: '身份证 11010519491231002X',
+      text: '身份证 000000000000000000',
       x: 0,
       y: 0,
       w: 400,
