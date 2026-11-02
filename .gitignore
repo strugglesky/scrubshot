@@ -7,3 +7,4 @@ coverage
 .vite
 public/models
 public/ort
+docs/blog
