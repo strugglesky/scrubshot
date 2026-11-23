@@ -8,3 +8,4 @@ coverage
 public/models
 public/ort
 docs/blog
+.debug
