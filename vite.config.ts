@@ -1,5 +1,6 @@
 import react from '@vitejs/plugin-react'
-import { copyFileSync, existsSync, mkdirSync } from 'node:fs'
+import { createHash } from 'node:crypto'
+import { copyFileSync, existsSync, mkdirSync, readFileSync } from 'node:fs'
 import { createRequire } from 'node:module'
 import { dirname, resolve } from 'node:path'
 import { defineConfig } from 'vite'
@@ -7,11 +8,11 @@ import { defineConfig } from 'vite'
 const require = createRequire(resolve(process.cwd(), 'package.json'))
 
 /** RapidOCR 用的模型：mobile 版（快），server 版留给需要极限精度的场景 */
-const OCR_MODELS = [
-  'PP-OCRv5_mobile_det_infer.onnx',
-  'PP-OCRv5_mobile_rec_infer.onnx',
-  'ppocr_keys_v5.txt',
-]
+const OCR_MODELS = {
+  detectionPath: 'PP-OCRv5_mobile_det_infer.onnx',
+  recognitionPath: 'PP-OCRv5_mobile_rec_infer.onnx',
+  dictionaryPath: 'ppocr_keys_v5.txt',
+}
 
 function copyModels() {
   try {
@@ -20,26 +21,32 @@ function copyModels() {
     const target = resolve('public/models')
     mkdirSync(target, { recursive: true })
 
-    for (const file of OCR_MODELS) {
+    return Object.entries(OCR_MODELS).map(([kind, file]) => {
       const from = resolve(source, file)
       const to = resolve(target, file)
       if (!existsSync(from)) {
-        console.warn(`[scrubshot] 缺少模型文件 ${file}`)
-        continue
+        throw new Error(`缺少模型文件 ${file}`)
       }
-      if (existsSync(to)) continue
-      copyFileSync(from, to)
-    }
+      const data = readFileSync(from)
+      const hash = createHash('sha256').update(data).digest('hex')
+      if (!existsSync(to) || createHash('sha256').update(readFileSync(to)).digest('hex') !== hash) {
+        copyFileSync(from, to)
+      }
+      return { kind, path: `models/${file}`, hash, size: data.length }
+    })
   } catch (error) {
-    console.warn('[scrubshot] OCR 模型复制失败，RapidOCR 将不可用', error)
+    throw new Error('OCR 模型复制失败', { cause: error })
   }
 }
 
 export default defineConfig(() => {
-  copyModels()
+  const models = copyModels()
 
   return {
     plugins: [react()],
+    define: {
+      __OCR_MODELS__: JSON.stringify(models),
+    },
     server: {
       port: 5173,
     },

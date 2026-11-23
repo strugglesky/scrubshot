@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import type { PointerEvent as ReactPointerEvent } from 'react'
 import type { Box, Handle, Pt, Rect, RedactStyle } from '../types'
 import {
@@ -105,7 +105,7 @@ export default function Stage(props: Props) {
   const [viewport, setViewport] = useState({ w: 0, h: 0 })
   const [drag, setDrag] = useState<Drag | null>(null)
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     const element = wrapRef.current
     if (!element) return
     const measure = () => setViewport({ w: element.clientWidth, h: element.clientHeight })

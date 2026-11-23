@@ -3,6 +3,7 @@ import type { TextLine } from '../types'
 export interface OcrProgress {
   status: string
   progress: number
+  warning?: string
 }
 
 export interface OcrResult {

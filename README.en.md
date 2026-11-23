@@ -52,7 +52,9 @@ Open **[http://121.40.98.30:8080](http://121.40.98.30:8080)**.
 
 > The demo currently uses HTTP. OCR runs locally, but HTTP does not protect application downloads against network tampering. For sensitive work, use a trusted local installation or an HTTPS deployment.
 >
-> Initial OCR resources are approximately 58 MB uncompressed. Transfer size depends on server compression and browser caching.
+> OCR starts preparing in the background as soon as the page opens. The status strip shows loading, readiness, or a retry button. Image import and manual editing remain available; recognition waits for initialization.
+>
+> Initial OCR resources are approximately 58 MB uncompressed. Models and the dictionary are persisted in IndexedDB and reused on later visits from the same browser and origin. Reopening still requires a brief engine initialization, not another model download.
 
 ### Run locally
 
@@ -167,6 +169,10 @@ Publish the generated `dist/` directory with a static web server.
 
 The current demo runs on Ubuntu and nginx on port `8080` with precompressed assets served through `gzip_static`.
 
+### CI staging deployment
+
+Every branch push and pull request runs type checks, tests, and a production build. Successful `develop` pushes can deploy the exact CI-built `dist/` to a separate staging site over SSH, with atomic activation and rollback on health-check failure. Deployment is disabled until configured; `main` never deploys through this workflow. See the [staging setup guide](docs/ci-staging.md) for Environment settings, server prerequisites, and main branch protection. Branch protection must be enabled in GitHub settings; the workflow alone cannot block direct pushes.
+
 ### Deployment checklist
 
 - Keep generated model files in the deployed output. They are excluded from Git but copied during the build.
@@ -180,11 +186,13 @@ The current demo runs on Ubuntu and nginx on port `8080` with precompressed asse
 | Resource | Uncompressed size | When needed |
 |---|---:|---|
 | Application bundle | ~630 KB | Page load |
-| OCR engine, including OpenCV | ~10 MB | First OCR initialization |
-| PP-OCR models | ~20 MB | First OCR initialization |
-| ONNX Runtime WASM | ~28 MB | First OCR initialization |
+| OCR engine, including OpenCV | ~10 MB | Background initialization on page open |
+| PP-OCR models | ~20 MB | Local cache on page open; download on cache miss |
+| ONNX Runtime WASM | ~28 MB | Background initialization on page open |
 
 These figures come from a tested build and may change with dependencies. Actual transfer sizes depend on compression and caching.
+
+Model cache entries use content-based versions, so only changed files need downloading after an upgrade. Scripts and WASM continue to use normal HTTP caching. Clearing site data, changing browsers or origins, private browsing, or browser storage eviction may require downloading the models again. Storage failures do not prevent using downloaded models for the current visit, and a warning is shown. Screenshots and recognition results are not saved in this cache. This feature does not provide offline startup for the entire website.
 
 ---
 
@@ -231,7 +239,7 @@ Dependency build-script approvals are recorded in `pnpm-workspace.yaml`. See [CO
 - Rotation and mirror support vary by engine; do not assume every orientation is covered.
 - Sub-line boxes without word coordinates are estimates. Unusual fonts, perspective, or OCR errors may affect coverage.
 - Text-based benchmark matches do not certify complete pixel coverage.
-- First recognition requires large runtime and model downloads.
+- The first page visit starts runtime and model downloads automatically; subsequent visits reuse persisted model files but still initialize the engine.
 
 ---
 

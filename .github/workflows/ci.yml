@@ -2,8 +2,11 @@ name: CI
 
 on:
   push:
-    branches: [main]
+    branches: ['**']
   pull_request:
+
+permissions:
+  contents: read
 
 jobs:
   check:
@@ -26,4 +29,69 @@ jobs:
 
       - run: pnpm typecheck
       - run: pnpm test
+      - name: Check deployment scripts
+        run: |
+          bash -n .github/scripts/deploy-staging.sh
+          bash -n .github/scripts/staging-release.sh
+          node --test .github/scripts/test-staging-release.mjs
       - run: pnpm build
+
+      - name: Package staging build
+        if: github.event_name == 'push' && github.ref == 'refs/heads/develop'
+        run: |
+          test -f dist/index.html
+          test -z "$(find dist -type l -print -quit)"
+          tar -czf staging-dist.tar.gz -C dist .
+
+      - name: Save staging build
+        if: github.event_name == 'push' && github.ref == 'refs/heads/develop'
+        uses: actions/upload-artifact@v4
+        with:
+          name: staging-${{ github.sha }}
+          path: staging-dist.tar.gz
+          if-no-files-found: error
+          retention-days: 7
+
+  deploy-staging:
+    needs: check
+    if: github.event_name == 'push' && github.ref == 'refs/heads/develop'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    environment: staging
+    concurrency:
+      group: staging-deployment
+      cancel-in-progress: false
+    steps:
+      - name: Check staging deployment switch
+        id: gate
+        env:
+          ENABLED: ${{ vars.STAGING_DEPLOY_ENABLED }}
+        run: |
+          if [[ "$ENABLED" == 'true' ]]; then
+            echo 'enabled=true' >> "$GITHUB_OUTPUT"
+          else
+            echo 'enabled=false' >> "$GITHUB_OUTPUT"
+            echo 'Staging deployment is disabled. Set STAGING_DEPLOY_ENABLED=true in the staging environment after configuring the server.' >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - uses: actions/checkout@v4
+        if: steps.gate.outputs.enabled == 'true'
+
+      - name: Download verified build
+        if: steps.gate.outputs.enabled == 'true'
+        uses: actions/download-artifact@v4
+        with:
+          name: staging-${{ github.sha }}
+          path: staging-artifact
+
+      - name: Publish staging release
+        if: steps.gate.outputs.enabled == 'true'
+        env:
+          STAGING_HOST: ${{ vars.STAGING_HOST }}
+          STAGING_PORT: ${{ vars.STAGING_PORT }}
+          STAGING_USER: ${{ vars.STAGING_USER }}
+          STAGING_ROOT: ${{ vars.STAGING_ROOT }}
+          STAGING_URL: ${{ vars.STAGING_URL }}
+          STAGING_SSH_KEY: ${{ secrets.STAGING_SSH_KEY }}
+          STAGING_KNOWN_HOSTS: ${{ secrets.STAGING_KNOWN_HOSTS }}
+        run: bash .github/scripts/deploy-staging.sh staging-artifact/staging-dist.tar.gz

@@ -1,6 +1,7 @@
 import * as ort from 'onnxruntime-web'
 import type { Rect, TextLine } from '../types'
 import type { OcrEngine, OcrInput, OcrProgress, OcrResult } from './engine'
+import { ModelCache } from './model-cache'
 
 /**
  * RapidOCR（PP-OCR 检测 + 识别）适配器。
@@ -25,18 +26,34 @@ interface RawLine {
 
 type RapidInstance = { detect?: (input: unknown) => Promise<unknown> }
 
+/** OCR 不需要保留原图的全部像素；限制输入可避免超大 Canvas 和 Data URL 触发浏览器 OOM。 */
+export const RAPID_MAX_SIDE = 3000
+
 export class RapidEngine implements OcrEngine {
   private instance: RapidInstance | null = null
+  private pending: Promise<void> | null = null
+  private terminated = false
+
+  constructor(private cache = new ModelCache()) {}
 
   async init(onProgress?: (progress: OcrProgress) => void): Promise<void> {
+    if (this.terminated) throw new Error('RapidOCR 已关闭')
     if (this.instance) return
+    if (!this.pending) {
+      this.pending = this.initialize(onProgress).finally(() => {
+        this.pending = null
+      })
+    }
+    await this.pending
+  }
 
+  private async initialize(onProgress?: (progress: OcrProgress) => void): Promise<void> {
     // 单线程：多线程需要 cross-origin isolation（COOP/COEP），静态托管往往配不了，
     // 而开了线程反而会直接失败。
     // wasm 不走 CDN，由 ORT 按 import.meta.url 解析到构建产物里 —— 断网可用。
     ort.env.wasm.numThreads = 1
 
-    onProgress?.({ status: 'loading language', progress: 0.05 })
+    onProgress?.({ status: 'loading engine', progress: 0 })
 
     const module = (await import('@sanduc/ocr-browser')) as Record<string, unknown>
     const candidate =
@@ -47,30 +64,34 @@ export class RapidEngine implements OcrEngine {
       throw new Error(`RapidOCR 导出结构不符：${Object.keys(module).join(' / ') || '空模块'}`)
     }
 
-    onProgress?.({ status: 'initializing', progress: 0.2 })
-
-    // 显式给出三个模型路径，不走它的自动探测。
-    // 探测逻辑是 HEAD + response.ok，而 Vite dev server 对不存在的文件会返回
-    // index.html（200 OK），于是它会把"没复制的 server 模型"当成存在，
-    // GET 回来一份 HTML 去喂 protobuf —— 报 "protobuf parsing failed"。
-    const created = (await candidate.create({
-      models: {
-        detectionPath: '/models/PP-OCRv5_mobile_det_infer.onnx',
-        recognitionPath: '/models/PP-OCRv5_mobile_rec_infer.onnx',
-        dictionaryPath: '/models/ppocr_keys_v5.txt',
-      },
-    })) as RapidInstance
-    if (typeof created.detect !== 'function') {
-      throw new Error(`RapidOCR 实例缺少 detect()：${Object.keys(created).join(' / ')}`)
+    for (let attempt = 0; attempt < 2; attempt += 1) {
+      const files = await this.cache.load(onProgress, attempt > 0)
+      try {
+        if (this.terminated) throw new Error('RapidOCR 已关闭')
+        onProgress?.({ status: 'initializing', progress: 0 })
+        const created = (await candidate.create({ models: files.models })) as RapidInstance
+        if (typeof created.detect !== 'function') {
+          throw new Error(`RapidOCR 实例缺少 detect()：${Object.keys(created).join(' / ')}`)
+        }
+        if (this.terminated) throw new Error('RapidOCR 已关闭')
+        await files.commit()
+        if (this.terminated) throw new Error('RapidOCR 已关闭')
+        this.instance = created
+        return
+      } catch (error) {
+        if (this.terminated || attempt > 0 || !files.fromCache) throw error
+        await files.invalidate()
+      } finally {
+        files.release()
+      }
     }
-
-    this.instance = created
   }
 
   async recognize(input: OcrInput): Promise<OcrResult> {
     if (!this.instance?.detect) throw new Error('RapidOCR 未初始化')
 
-    const result = (await this.instance.detect(toDataUrl(input))) as unknown
+    const prepared = toDataUrl(input)
+    const result = (await this.instance.detect(prepared.dataUrl)) as unknown
     const raw = Array.isArray(result) ? result : (result as { lines?: unknown })?.lines
 
     if (!Array.isArray(raw)) {
@@ -88,13 +109,15 @@ export class RapidEngine implements OcrEngine {
       // 有的实现给 0–1，有的给 0–100，统一成 0–100
       const confidence = rawConfidence <= 1 ? rawConfidence * 100 : rawConfidence
 
-      lines.push({ ...rect, text, confidence, words: [] })
+      lines.push({ ...scaleRectForSource(rect, prepared.scale), text, confidence, words: [] })
     }
 
     return { lines, mirrored: false }
   }
 
   async terminate(): Promise<void> {
+    this.terminated = true
+    await this.pending?.catch(() => undefined)
     this.instance = null
   }
 }
@@ -129,14 +152,34 @@ function toRect(points: unknown): Rect | null {
   return { x, y, w: Math.max(...xs) - x, h: Math.max(...ys) - y }
 }
 
-function toDataUrl(input: OcrInput): string {
-  if (input instanceof HTMLCanvasElement) return input.toDataURL('image/png')
+export function scaleRectForSource(rect: Rect, scale: number): Rect {
+  return {
+    x: rect.x / scale,
+    y: rect.y / scale,
+    w: rect.w / scale,
+    h: rect.h / scale,
+  }
+}
+
+function toDataUrl(input: OcrInput): { dataUrl: string; scale: number } {
+  const sourceWidth = input instanceof HTMLImageElement ? input.naturalWidth : input.width
+  const sourceHeight = input instanceof HTMLImageElement ? input.naturalHeight : input.height
+  const longest = Math.max(sourceWidth, sourceHeight)
+  const scale = longest > RAPID_MAX_SIDE ? RAPID_MAX_SIDE / longest : 1
+  const width = Math.max(1, Math.round(sourceWidth * scale))
+  const height = Math.max(1, Math.round(sourceHeight * scale))
+
+  if (input instanceof HTMLCanvasElement && scale === 1) {
+    return { dataUrl: input.toDataURL('image/png'), scale }
+  }
 
   const canvas = document.createElement('canvas')
-  canvas.width = input.naturalWidth
-  canvas.height = input.naturalHeight
+  canvas.width = width
+  canvas.height = height
   const ctx = canvas.getContext('2d')
   if (!ctx) throw new Error('无法创建 2D 画布')
-  ctx.drawImage(input, 0, 0)
-  return canvas.toDataURL('image/png')
+  ctx.imageSmoothingEnabled = true
+  ctx.imageSmoothingQuality = 'high'
+  ctx.drawImage(input, 0, 0, width, height)
+  return { dataUrl: canvas.toDataURL('image/png'), scale }
 }

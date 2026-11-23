@@ -14,13 +14,16 @@ import { mergeFindings, mergeLines } from './detectors/merge'
 import { pushPast } from './hooks/useHistory'
 import type { OcrEngine, OcrProgress, EngineKind, PsmMode } from './ocr/engine'
 import { RapidEngine } from './ocr/rapid'
+import { EngineManager } from './ocr/manager'
+import type { ModelState } from './ocr/manager'
 import { TesseractEngine } from './ocr/tesseract'
 import type { BatchItem, Box, ExportFormat, OcrState, RedactStyle, TextLine } from './types'
 
 const MAX_ITEMS = 20
 
 function stageLabel(status: string): string {
-  if (status.includes('loading language')) return '下载识别模型（首次约 15MB）…'
+  if (status.includes('reading cache')) return '读取本地模型…'
+  if (status.includes('loading language')) return '下载识别模型…'
   if (status.includes('loading tesseract')) return '加载识别引擎…'
   if (status.includes('initializing')) return '初始化…'
   if (status.includes('recognizing')) return '识别文字…'
@@ -69,8 +72,10 @@ export default function App() {
   const [error, setError] = useState<string | null>(null)
   const [view, setView] = useState<'editor' | 'bench'>('editor')
 
-  const engineRef = useRef<OcrEngine | null>(null)
-  const engineKindRef = useRef<EngineKind>('rapid')
+  const [engineManager] = useState(() => new EngineManager(
+    (kind) => kind === 'rapid' ? new RapidEngine() : new TesseractEngine(),
+  ))
+  const [modelState, setModelState] = useState<ModelState>({ status: 'idle', message: '模型准备中…' })
   const queueRef = useRef<Array<{ id: string; image: HTMLImageElement; mirror?: boolean }>>([])
   const drainingRef = useRef(false)
 
@@ -82,16 +87,8 @@ export default function App() {
   }, [])
 
   const ensureEngine = useCallback(
-    async (kind: EngineKind, onProgress?: (progress: OcrProgress) => void) => {
-      if (!engineRef.current || engineKindRef.current !== kind) {
-        void engineRef.current?.terminate()
-        engineRef.current = kind === 'rapid' ? new RapidEngine() : new TesseractEngine()
-        engineKindRef.current = kind
-      }
-      await engineRef.current.init(onProgress)
-      return engineRef.current
-    },
-    [],
+    (kind: EngineKind, onProgress?: (progress: OcrProgress) => void) => engineManager.ensure(kind, onProgress),
+    [engineManager],
   )
 
   const analyze = useCallback(
@@ -353,10 +350,14 @@ export default function App() {
   }, [activeId])
 
   useEffect(() => {
+    const release = engineManager.retain()
+    const unsubscribe = engineManager.subscribe(setModelState)
+    void engineManager.ensure('rapid').catch(() => undefined)
     return () => {
-      void engineRef.current?.terminate()
+      unsubscribe()
+      release()
     }
-  }, [])
+  }, [engineManager])
 
   // Ctrl/⌘ + V：截图后的最高频入口
   useEffect(() => {
@@ -506,6 +507,20 @@ export default function App() {
           </button>
         </div>
       </header>
+
+      <div className={`model-status ${modelState.status}`} role="status" aria-live="polite">
+        <span>{modelState.message}</span>
+        {modelState.warning && <span className="model-warning">{modelState.warning}</span>}
+        {modelState.status === 'error' && (
+          <button
+            type="button"
+            className="button ghost small"
+            onClick={() => void engineManager.ensure('rapid').catch(() => undefined)}
+          >
+            重试加载模型
+          </button>
+        )}
+      </div>
 
       {error && <div className="banner">{error}</div>}
 

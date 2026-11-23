@@ -103,6 +103,26 @@ h3 {
 
 /* ---------- layout ---------- */
 
+.model-status {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  padding: 8px 20px;
+  border-bottom: 1px solid var(--line);
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.model-status.ready {
+  color: var(--ok);
+}
+
+.model-status.error,
+.model-warning {
+  color: #ffb3ba;
+}
+
 .layout {
   flex: 1;
   min-height: 0;
@@ -133,6 +153,8 @@ h3 {
 }
 
 .stage-canvas {
+  max-width: 100%;
+  max-height: 100%;
   touch-action: none;
   cursor: crosshair;
   border-radius: 6px;
